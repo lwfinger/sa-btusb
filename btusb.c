@@ -58,7 +58,6 @@ static struct usb_driver btusb_driver;
 #define BTUSB_WRONG_SCO_MTU	0x40
 #define BTUSB_ATH3012		0x80
 #define BTUSB_BCM_PATCHRAM	0x400
-#define BTUSB_MARVELL		0x800
 #define BTUSB_SWAVE		0x1000
 #define BTUSB_AMP		0x4000
 #define BTUSB_QCA_ROME		0x8000
@@ -329,11 +328,6 @@ static const struct usb_device_id blacklist_table[] = {
 	/* Frontline ComProbe Bluetooth Sniffer */
 	{ USB_DEVICE(0x16d3, 0x0002),
 	  .driver_info = BTUSB_SNIFFER | BTUSB_BROKEN_ISOC },
-
-	/* Marvell Bluetooth devices */
-	{ USB_DEVICE(0x1286, 0x2044), .driver_info = BTUSB_MARVELL },
-	{ USB_DEVICE(0x1286, 0x2046), .driver_info = BTUSB_MARVELL },
-	{ USB_DEVICE(0x1286, 0x204e), .driver_info = BTUSB_MARVELL },
 
 	/* Other Intel Bluetooth devices */
 	{ USB_VENDOR_AND_INTERFACE_INFO(0x8087, 0xe0, 0x01, 0x01),
@@ -1572,73 +1566,6 @@ static int btusb_setup_csr(struct hci_dev *hdev)
 	return 0;
 }
 
-#ifdef CONFIG_PM
-/* Configure an out-of-band gpio as wake-up pin, if specified in device tree */
-static int marvell_config_oob_wake(struct hci_dev *hdev)
-{
-	struct sk_buff *skb;
-	struct btusb_data *data = hci_get_drvdata(hdev);
-	struct device *dev = &data->udev->dev;
-	u16 pin, gap, opcode;
-	int ret;
-	u8 cmd[5];
-
-	/* Move on if no wakeup pin specified */
-	if (of_property_read_u16(dev->of_node, "marvell,wakeup-pin", &pin) ||
-	    of_property_read_u16(dev->of_node, "marvell,wakeup-gap-ms", &gap))
-		return 0;
-
-	/* Vendor specific command to configure a GPIO as wake-up pin */
-	opcode = hci_opcode_pack(0x3F, 0x59);
-	cmd[0] = opcode & 0xFF;
-	cmd[1] = opcode >> 8;
-	cmd[2] = 2; /* length of parameters that follow */
-	cmd[3] = pin;
-	cmd[4] = gap; /* time in ms, for which wakeup pin should be asserted */
-
-	skb = bt_skb_alloc(sizeof(cmd), GFP_KERNEL);
-	if (!skb) {
-		bt_dev_err(hdev, "%s: No memory\n", __func__);
-		return -ENOMEM;
-	}
-
-	skb_put_data(skb, cmd, sizeof(cmd));
-	hci_skb_pkt_type(skb) = HCI_COMMAND_PKT;
-
-	ret = btusb_send_frame(hdev, skb);
-	if (ret) {
-		bt_dev_err(hdev, "%s: configuration failed\n", __func__);
-		kfree_skb(skb);
-		return ret;
-	}
-
-	return 0;
-}
-#endif
-
-static int btusb_set_bdaddr_marvell(struct hci_dev *hdev,
-				    const bdaddr_t *bdaddr)
-{
-	struct sk_buff *skb;
-	u8 buf[8];
-	long ret;
-
-	buf[0] = 0xfe;
-	buf[1] = sizeof(bdaddr_t);
-	memcpy(buf + 2, bdaddr, sizeof(bdaddr_t));
-
-	skb = __hci_cmd_sync(hdev, 0xfc22, sizeof(buf), buf, HCI_INIT_TIMEOUT);
-	if (IS_ERR(skb)) {
-		ret = PTR_ERR(skb);
-		bt_dev_err(hdev, "changing Marvell device address failed (%ld)",
-			   ret);
-		return ret;
-	}
-	kfree_skb(skb);
-
-	return 0;
-}
-
 static int btusb_set_bdaddr_ath3012(struct hci_dev *hdev,
 				    const bdaddr_t *bdaddr)
 {
@@ -2220,12 +2147,6 @@ static int btusb_probe(struct usb_interface *intf,
 	if (err)
 		goto out_free_dev;
 
-	/* Marvell devices may need a specific chip configuration */
-	if (id->driver_info & BTUSB_MARVELL && data->oob_wake_irq) {
-		err = marvell_config_oob_wake(hdev);
-		if (err)
-			goto out_free_dev;
-	}
 #endif
 	if (id->driver_info & BTUSB_CW6622)
 		set_bit(HCI_QUIRK_BROKEN_STORED_LINK_KEY, &hdev->quirks);
@@ -2256,9 +2177,6 @@ static int btusb_probe(struct usb_interface *intf,
 		data->diag = usb_ifnum_to_if(data->udev, ifnum_base + 2);
 	}
 #endif
-
-	if (id->driver_info & BTUSB_MARVELL)
-		hdev->set_bdaddr = btusb_set_bdaddr_marvell;
 
 	if (id->driver_info & BTUSB_SWAVE) {
 		set_bit(HCI_QUIRK_FIXUP_INQUIRY_MODE, &hdev->quirks);
