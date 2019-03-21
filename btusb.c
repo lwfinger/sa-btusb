@@ -35,8 +35,6 @@
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
 
-#include "btintel.h"
-#include "btbcm.h"
 #include "btrtl.h"
 
 #define VERSION "0.8"
