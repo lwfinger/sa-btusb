@@ -55,7 +55,6 @@ static struct usb_driver btusb_driver;
 #define BTUSB_WRONG_SCO_MTU	0x40
 #define BTUSB_REALTEK		0x20000
 #define BTUSB_IFNUM_2		0x80000
-#define BTUSB_CW6622		0x100000
 
 static const struct usb_device_id btusb_table[] = {
 	/* Generic Bluetooth USB device */
@@ -106,10 +105,6 @@ static const struct usb_device_id blacklist_table[] = {
 	/* RTX Telecom based adapters with buggy SCO support */
 	{ USB_DEVICE(0x0400, 0x0807), .driver_info = BTUSB_BROKEN_ISOC },
 	{ USB_DEVICE(0x0400, 0x080a), .driver_info = BTUSB_BROKEN_ISOC },
-
-	/* CONWISE Technology based adapters with buggy SCO support */
-	{ USB_DEVICE(0x0e5e, 0x6622),
-	  .driver_info = BTUSB_BROKEN_ISOC | BTUSB_CW6622},
 
 	/* Digianswer devices */
 	{ USB_DEVICE(0x08fd, 0x0001), .driver_info = BTUSB_DIGIANSWER },
@@ -1495,8 +1490,6 @@ static int btusb_probe(struct usb_interface *intf,
 		goto out_free_dev;
 
 #endif
-	if (id->driver_info & BTUSB_CW6622)
-		set_bit(HCI_QUIRK_BROKEN_STORED_LINK_KEY, &hdev->quirks);
 
 #ifdef CONFIG_BT_HCIBTUSB_RTL
 	if (id->driver_info & BTUSB_REALTEK) {
