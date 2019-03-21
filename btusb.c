@@ -54,7 +54,6 @@ static struct usb_driver btusb_driver;
 #define BTUSB_BROKEN_ISOC	0x20
 #define BTUSB_WRONG_SCO_MTU	0x40
 #define BTUSB_AMP		0x4000
-#define BTUSB_QCA_ROME		0x8000
 #define BTUSB_REALTEK		0x20000
 #define BTUSB_IFNUM_2		0x80000
 #define BTUSB_CW6622		0x100000
@@ -93,23 +92,6 @@ MODULE_DEVICE_TABLE(usb, btusb_table);
 static const struct usb_device_id blacklist_table[] = {
 	/* CSR BlueCore devices */
 	{ USB_DEVICE(0x0a12, 0x0001), .driver_info = BTUSB_CSR },
-
-	/* QCA ROME chipset */
-	{ USB_DEVICE(0x0cf3, 0x535b), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x0cf3, 0xe007), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x0cf3, 0xe009), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x0cf3, 0xe010), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x0cf3, 0xe300), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x0cf3, 0xe301), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x0cf3, 0xe360), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x0489, 0xe092), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x0489, 0xe09f), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x0489, 0xe0a2), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x04ca, 0x3011), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x04ca, 0x3015), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x04ca, 0x3016), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x04ca, 0x301a), .driver_info = BTUSB_QCA_ROME },
-	{ USB_DEVICE(0x13d3, 0x3496), .driver_info = BTUSB_QCA_ROME },
 
 	/* Dell Wireless 370 and 410 devices */
 	{ USB_DEVICE(0x413c, 0x8152), .driver_info = BTUSB_WRONG_SCO_MTU },
@@ -191,27 +173,6 @@ static const struct usb_device_id blacklist_table[] = {
  * the module itself. So we use a DMI list to match known broken platforms.
  */
 static const struct dmi_system_id btusb_needs_reset_resume_table[] = {
-	{
-		/* Dell OptiPlex 3060 (QCA ROME device 0cf3:e007) */
-		.matches = {
-			DMI_MATCH(DMI_SYS_VENDOR, "Dell Inc."),
-			DMI_MATCH(DMI_PRODUCT_NAME, "OptiPlex 3060"),
-		},
-	},
-	{
-		/* Dell XPS 9360 (QCA ROME device 0cf3:e300) */
-		.matches = {
-			DMI_MATCH(DMI_SYS_VENDOR, "Dell Inc."),
-			DMI_MATCH(DMI_PRODUCT_NAME, "XPS 13 9360"),
-		},
-	},
-	{
-		/* Dell Inspiron 5565 (QCA ROME device 0cf3:e009) */
-		.matches = {
-			DMI_MATCH(DMI_SYS_VENDOR, "Dell Inc."),
-			DMI_MATCH(DMI_PRODUCT_NAME, "Inspiron 5565"),
-		},
-	},
 	{}
 };
 
@@ -1363,286 +1324,6 @@ static int btusb_setup_csr(struct hci_dev *hdev)
 	return 0;
 }
 
-static int btusb_set_bdaddr_ath3012(struct hci_dev *hdev,
-				    const bdaddr_t *bdaddr)
-{
-	struct sk_buff *skb;
-	u8 buf[10];
-	long ret;
-
-	buf[0] = 0x01;
-	buf[1] = 0x01;
-	buf[2] = 0x00;
-	buf[3] = sizeof(bdaddr_t);
-	memcpy(buf + 4, bdaddr, sizeof(bdaddr_t));
-
-	skb = __hci_cmd_sync(hdev, 0xfc0b, sizeof(buf), buf, HCI_INIT_TIMEOUT);
-	if (IS_ERR(skb)) {
-		ret = PTR_ERR(skb);
-		bt_dev_err(hdev, "Change address command failed (%ld)", ret);
-		return ret;
-	}
-	kfree_skb(skb);
-
-	return 0;
-}
-
-#define QCA_DFU_PACKET_LEN	4096
-
-#define QCA_GET_TARGET_VERSION	0x09
-#define QCA_CHECK_STATUS	0x05
-#define QCA_DFU_DOWNLOAD	0x01
-
-#define QCA_SYSCFG_UPDATED	0x40
-#define QCA_PATCH_UPDATED	0x80
-#define QCA_DFU_TIMEOUT		3000
-
-struct qca_version {
-	__le32	rom_version;
-	__le32	patch_version;
-	__le32	ram_version;
-	__le32	ref_clock;
-	__u8	reserved[4];
-} __packed;
-
-struct qca_rampatch_version {
-	__le16	rom_version;
-	__le16	patch_version;
-} __packed;
-
-struct qca_device_info {
-	u32	rom_version;
-	u8	rampatch_hdr;	/* length of header in rampatch */
-	u8	nvm_hdr;	/* length of header in NVM */
-	u8	ver_offset;	/* offset of version structure in rampatch */
-};
-
-static const struct qca_device_info qca_devices_table[] = {
-	{ 0x00000100, 20, 4, 10 }, /* Rome 1.0 */
-	{ 0x00000101, 20, 4, 10 }, /* Rome 1.1 */
-	{ 0x00000200, 28, 4, 18 }, /* Rome 2.0 */
-	{ 0x00000201, 28, 4, 18 }, /* Rome 2.1 */
-	{ 0x00000300, 28, 4, 18 }, /* Rome 3.0 */
-	{ 0x00000302, 28, 4, 18 }, /* Rome 3.2 */
-};
-
-static int btusb_qca_send_vendor_req(struct usb_device *udev, u8 request,
-				     void *data, u16 size)
-{
-	int pipe, err;
-	u8 *buf;
-
-	buf = kmalloc(size, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	/* Found some of USB hosts have IOT issues with ours so that we should
-	 * not wait until HCI layer is ready.
-	 */
-	pipe = usb_rcvctrlpipe(udev, 0);
-	err = usb_control_msg(udev, pipe, request, USB_TYPE_VENDOR | USB_DIR_IN,
-			      0, 0, buf, size, USB_CTRL_SET_TIMEOUT);
-	if (err < 0) {
-		dev_err(&udev->dev, "Failed to access otp area (%d)", err);
-		goto done;
-	}
-
-	memcpy(data, buf, size);
-
-done:
-	kfree(buf);
-
-	return err;
-}
-
-static int btusb_setup_qca_download_fw(struct hci_dev *hdev,
-				       const struct firmware *firmware,
-				       size_t hdr_size)
-{
-	struct btusb_data *btdata = hci_get_drvdata(hdev);
-	struct usb_device *udev = btdata->udev;
-	size_t count, size, sent = 0;
-	int pipe, len, err;
-	u8 *buf;
-
-	buf = kmalloc(QCA_DFU_PACKET_LEN, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	count = firmware->size;
-
-	size = min_t(size_t, count, hdr_size);
-	memcpy(buf, firmware->data, size);
-
-	/* USB patches should go down to controller through USB path
-	 * because binary format fits to go down through USB channel.
-	 * USB control path is for patching headers and USB bulk is for
-	 * patch body.
-	 */
-	pipe = usb_sndctrlpipe(udev, 0);
-	err = usb_control_msg(udev, pipe, QCA_DFU_DOWNLOAD, USB_TYPE_VENDOR,
-			      0, 0, buf, size, USB_CTRL_SET_TIMEOUT);
-	if (err < 0) {
-		bt_dev_err(hdev, "Failed to send headers (%d)", err);
-		goto done;
-	}
-
-	sent += size;
-	count -= size;
-
-	while (count) {
-		size = min_t(size_t, count, QCA_DFU_PACKET_LEN);
-
-		memcpy(buf, firmware->data + sent, size);
-
-		pipe = usb_sndbulkpipe(udev, 0x02);
-		err = usb_bulk_msg(udev, pipe, buf, size, &len,
-				   QCA_DFU_TIMEOUT);
-		if (err < 0) {
-			bt_dev_err(hdev, "Failed to send body at %zd of %zd (%d)",
-				   sent, firmware->size, err);
-			break;
-		}
-
-		if (size != len) {
-			bt_dev_err(hdev, "Failed to get bulk buffer");
-			err = -EILSEQ;
-			break;
-		}
-
-		sent  += size;
-		count -= size;
-	}
-
-done:
-	kfree(buf);
-	return err;
-}
-
-static int btusb_setup_qca_load_rampatch(struct hci_dev *hdev,
-					 struct qca_version *ver,
-					 const struct qca_device_info *info)
-{
-	struct qca_rampatch_version *rver;
-	const struct firmware *fw;
-	u32 ver_rom, ver_patch;
-	u16 rver_rom, rver_patch;
-	char fwname[64];
-	int err;
-
-	ver_rom = le32_to_cpu(ver->rom_version);
-	ver_patch = le32_to_cpu(ver->patch_version);
-
-	snprintf(fwname, sizeof(fwname), "qca/rampatch_usb_%08x.bin", ver_rom);
-
-	err = request_firmware(&fw, fwname, &hdev->dev);
-	if (err) {
-		bt_dev_err(hdev, "failed to request rampatch file: %s (%d)",
-			   fwname, err);
-		return err;
-	}
-
-	bt_dev_info(hdev, "using rampatch file: %s", fwname);
-
-	rver = (struct qca_rampatch_version *)(fw->data + info->ver_offset);
-	rver_rom = le16_to_cpu(rver->rom_version);
-	rver_patch = le16_to_cpu(rver->patch_version);
-
-	bt_dev_info(hdev, "QCA: patch rome 0x%x build 0x%x, "
-		    "firmware rome 0x%x build 0x%x",
-		    rver_rom, rver_patch, ver_rom, ver_patch);
-
-	if (rver_rom != ver_rom || rver_patch <= ver_patch) {
-		bt_dev_err(hdev, "rampatch file version did not match with firmware");
-		err = -EINVAL;
-		goto done;
-	}
-
-	err = btusb_setup_qca_download_fw(hdev, fw, info->rampatch_hdr);
-
-done:
-	release_firmware(fw);
-
-	return err;
-}
-
-static int btusb_setup_qca_load_nvm(struct hci_dev *hdev,
-				    struct qca_version *ver,
-				    const struct qca_device_info *info)
-{
-	const struct firmware *fw;
-	char fwname[64];
-	int err;
-
-	snprintf(fwname, sizeof(fwname), "qca/nvm_usb_%08x.bin",
-		 le32_to_cpu(ver->rom_version));
-
-	err = request_firmware(&fw, fwname, &hdev->dev);
-	if (err) {
-		bt_dev_err(hdev, "failed to request NVM file: %s (%d)",
-			   fwname, err);
-		return err;
-	}
-
-	bt_dev_info(hdev, "using NVM file: %s", fwname);
-
-	err = btusb_setup_qca_download_fw(hdev, fw, info->nvm_hdr);
-
-	release_firmware(fw);
-
-	return err;
-}
-
-/* identify the ROM version and check whether patches are needed */
-static int btusb_setup_qca(struct hci_dev *hdev)
-{
-	struct btusb_data *btdata = hci_get_drvdata(hdev);
-	struct usb_device *udev = btdata->udev;
-	const struct qca_device_info *info = NULL;
-	struct qca_version ver;
-	u32 ver_rom;
-	u8 status;
-	int i, err;
-
-	err = btusb_qca_send_vendor_req(udev, QCA_GET_TARGET_VERSION, &ver,
-					sizeof(ver));
-	if (err < 0)
-		return err;
-
-	ver_rom = le32_to_cpu(ver.rom_version);
-	/* Don't care about high ROM versions */
-	if (ver_rom & ~0xffffU)
-		return 0;
-
-	for (i = 0; i < ARRAY_SIZE(qca_devices_table); i++) {
-		if (ver_rom == qca_devices_table[i].rom_version)
-			info = &qca_devices_table[i];
-	}
-	if (!info) {
-		bt_dev_err(hdev, "don't support firmware rome 0x%x", ver_rom);
-		return -ENODEV;
-	}
-
-	err = btusb_qca_send_vendor_req(udev, QCA_CHECK_STATUS, &status,
-					sizeof(status));
-	if (err < 0)
-		return err;
-
-	if (!(status & QCA_PATCH_UPDATED)) {
-		err = btusb_setup_qca_load_rampatch(hdev, &ver, info);
-		if (err < 0)
-			return err;
-	}
-
-	if (!(status & QCA_SYSCFG_UPDATED)) {
-		err = btusb_setup_qca_load_nvm(hdev, &ver, info);
-		if (err < 0)
-			return err;
-	}
-
-	return 0;
-}
-
 #ifdef CONFIG_PM
 static irqreturn_t btusb_oob_wake_handler(int irq, void *priv)
 {
@@ -1661,8 +1342,6 @@ static irqreturn_t btusb_oob_wake_handler(int irq, void *priv)
 
 static const struct of_device_id btusb_match_table[] = {
 	{ .compatible = "usb1286,204e" },
-	{ .compatible = "usbcf3,e300" }, /* QCA6174A */
-	{ .compatible = "usb4ca,301a" }, /* QCA6174A (Lite-On) */
 	{ }
 };
 MODULE_DEVICE_TABLE(of, btusb_match_table);
@@ -1705,12 +1384,6 @@ static int btusb_config_oob_wake(struct hci_dev *hdev)
 	return 0;
 }
 #endif
-
-static void btusb_check_needs_reset_resume(struct usb_interface *intf)
-{
-	if (dmi_check_system(btusb_needs_reset_resume_table))
-		interface_to_usbdev(intf)->quirks |= USB_QUIRK_RESET_RESUME;
-}
 
 static int btusb_probe(struct usb_interface *intf,
 		       const struct usb_device_id *id)
@@ -1836,13 +1509,6 @@ static int btusb_probe(struct usb_interface *intf,
 #endif
 	if (id->driver_info & BTUSB_CW6622)
 		set_bit(HCI_QUIRK_BROKEN_STORED_LINK_KEY, &hdev->quirks);
-
-	if (id->driver_info & BTUSB_QCA_ROME) {
-		data->setup_on_usb = btusb_setup_qca;
-		hdev->set_bdaddr = btusb_set_bdaddr_ath3012;
-		set_bit(HCI_QUIRK_SIMULTANEOUS_DISCOVERY, &hdev->quirks);
-		btusb_check_needs_reset_resume(intf);
-	}
 
 #ifdef CONFIG_BT_HCIBTUSB_RTL
 	if (id->driver_info & BTUSB_REALTEK) {
