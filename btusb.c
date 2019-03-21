@@ -55,7 +55,6 @@ static struct usb_driver btusb_driver;
 #define BTUSB_SNIFFER		0x08
 #define BTUSB_BROKEN_ISOC	0x20
 #define BTUSB_WRONG_SCO_MTU	0x40
-#define BTUSB_ATH3012		0x80
 #define BTUSB_SWAVE		0x1000
 #define BTUSB_AMP		0x4000
 #define BTUSB_QCA_ROME		0x8000
@@ -124,77 +123,6 @@ MODULE_DEVICE_TABLE(usb, btusb_table);
 static const struct usb_device_id blacklist_table[] = {
 	/* CSR BlueCore devices */
 	{ USB_DEVICE(0x0a12, 0x0001), .driver_info = BTUSB_CSR },
-
-	/* Atheros 3011 with sflash firmware */
-	{ USB_DEVICE(0x0489, 0xe027), .driver_info = BTUSB_IGNORE },
-	{ USB_DEVICE(0x0489, 0xe03d), .driver_info = BTUSB_IGNORE },
-	{ USB_DEVICE(0x04f2, 0xaff1), .driver_info = BTUSB_IGNORE },
-	{ USB_DEVICE(0x0930, 0x0215), .driver_info = BTUSB_IGNORE },
-	{ USB_DEVICE(0x0cf3, 0x3002), .driver_info = BTUSB_IGNORE },
-	{ USB_DEVICE(0x0cf3, 0xe019), .driver_info = BTUSB_IGNORE },
-	{ USB_DEVICE(0x13d3, 0x3304), .driver_info = BTUSB_IGNORE },
-
-	/* Atheros AR9285 Malbec with sflash firmware */
-	{ USB_DEVICE(0x03f0, 0x311d), .driver_info = BTUSB_IGNORE },
-
-	/* Atheros 3012 with sflash firmware */
-	{ USB_DEVICE(0x0489, 0xe04d), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0489, 0xe04e), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0489, 0xe056), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0489, 0xe057), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0489, 0xe05f), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0489, 0xe076), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0489, 0xe078), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0489, 0xe095), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04c5, 0x1330), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x3004), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x3005), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x3006), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x3007), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x3008), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x300b), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x300d), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x300f), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x3010), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x3014), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x04ca, 0x3018), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0930, 0x0219), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0930, 0x021c), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0930, 0x0220), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0930, 0x0227), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0b05, 0x17d0), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0x0036), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0x3004), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0x3008), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0x311d), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0x311e), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0x311f), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0x3121), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0x817a), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0x817b), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0xe003), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0xe004), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0xe005), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0cf3, 0xe006), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3362), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3375), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3393), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3395), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3402), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3408), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3423), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3432), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3472), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3474), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3487), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x13d3, 0x3490), .driver_info = BTUSB_ATH3012 },
-
-	/* Atheros AR5BBU12 with sflash firmware */
-	{ USB_DEVICE(0x0489, 0xe02c), .driver_info = BTUSB_IGNORE },
-
-	/* Atheros AR5BBU12 with sflash firmware */
-	{ USB_DEVICE(0x0489, 0xe036), .driver_info = BTUSB_ATH3012 },
-	{ USB_DEVICE(0x0489, 0xe03c), .driver_info = BTUSB_ATH3012 },
 
 	/* QCA ROME chipset */
 	{ USB_DEVICE(0x0cf3, 0x535b), .driver_info = BTUSB_QCA_ROME },
@@ -1702,17 +1630,6 @@ static int btusb_setup_qca_load_nvm(struct hci_dev *hdev,
 }
 
 /* identify the ROM version and check whether patches are needed */
-static bool btusb_qca_need_patch(struct usb_device *udev)
-{
-	struct qca_version ver;
-
-	if (btusb_qca_send_vendor_req(udev, QCA_GET_TARGET_VERSION, &ver,
-				      sizeof(ver)) < 0)
-		return false;
-	/* only low ROM versions need patches */
-	return !(le32_to_cpu(ver.rom_version) & ~0xffffU);
-}
-
 static int btusb_setup_qca(struct hci_dev *hdev)
 {
 	struct btusb_data *btdata = hci_get_drvdata(hdev);
@@ -1864,17 +1781,6 @@ static int btusb_probe(struct usb_interface *intf,
 	if (id->driver_info == BTUSB_IGNORE)
 		return -ENODEV;
 
-	if (id->driver_info & BTUSB_ATH3012) {
-		struct usb_device *udev = interface_to_usbdev(intf);
-
-		/* Old firmware would otherwise let ath3k driver load
-		 * patch and sysconfig files
-		 */
-		if (le16_to_cpu(udev->descriptor.bcdDevice) <= 0x0001 &&
-		    !btusb_qca_need_patch(udev))
-			return -ENODEV;
-	}
-
 	data = devm_kzalloc(&intf->dev, sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
@@ -1970,13 +1876,6 @@ static int btusb_probe(struct usb_interface *intf,
 	if (id->driver_info & BTUSB_SWAVE) {
 		set_bit(HCI_QUIRK_FIXUP_INQUIRY_MODE, &hdev->quirks);
 		set_bit(HCI_QUIRK_BROKEN_LOCAL_COMMANDS, &hdev->quirks);
-	}
-
-	if (id->driver_info & BTUSB_ATH3012) {
-		data->setup_on_usb = btusb_setup_qca;
-		hdev->set_bdaddr = btusb_set_bdaddr_ath3012;
-		set_bit(HCI_QUIRK_SIMULTANEOUS_DISCOVERY, &hdev->quirks);
-		set_bit(HCI_QUIRK_STRICT_DUPLICATE_FILTER, &hdev->quirks);
 	}
 
 	if (id->driver_info & BTUSB_QCA_ROME) {
