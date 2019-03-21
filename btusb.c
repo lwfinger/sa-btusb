@@ -55,7 +55,6 @@ static struct usb_driver btusb_driver;
 #define BTUSB_SNIFFER		0x08
 #define BTUSB_BROKEN_ISOC	0x20
 #define BTUSB_WRONG_SCO_MTU	0x40
-#define BTUSB_SWAVE		0x1000
 #define BTUSB_AMP		0x4000
 #define BTUSB_QCA_ROME		0x8000
 #define BTUSB_REALTEK		0x20000
@@ -74,33 +73,6 @@ static const struct usb_device_id btusb_table[] = {
 
 	/* MediaTek MT76x0E */
 	{ USB_DEVICE(0x0e8d, 0x763f) },
-
-	/* Broadcom SoftSailing reporting vendor specific */
-	{ USB_DEVICE(0x0a5c, 0x21e1) },
-
-	/* Apple MacBookPro 7,1 */
-	{ USB_DEVICE(0x05ac, 0x8213) },
-
-	/* Apple iMac11,1 */
-	{ USB_DEVICE(0x05ac, 0x8215) },
-
-	/* Apple MacBookPro6,2 */
-	{ USB_DEVICE(0x05ac, 0x8218) },
-
-	/* Apple MacBookAir3,1, MacBookAir3,2 */
-	{ USB_DEVICE(0x05ac, 0x821b) },
-
-	/* Apple MacBookAir4,1 */
-	{ USB_DEVICE(0x05ac, 0x821f) },
-
-	/* Apple MacBookPro8,2 */
-	{ USB_DEVICE(0x05ac, 0x821a) },
-
-	/* Apple MacMini5,1 */
-	{ USB_DEVICE(0x05ac, 0x8281) },
-
-	/* AVM BlueFRITZ! USB v2.0 */
-	{ USB_DEVICE(0x057c, 0x3800), .driver_info = BTUSB_SWAVE },
 
 	/* Bluetooth Ultraport Module from IBM */
 	{ USB_DEVICE(0x04bf, 0x030a) },
@@ -163,9 +135,6 @@ static const struct usb_device_id blacklist_table[] = {
 	{ USB_DEVICE(0x0e5e, 0x6622),
 	  .driver_info = BTUSB_BROKEN_ISOC | BTUSB_CW6622},
 
-	/* Roper Class 1 Bluetooth Dongle (Silicon Wave based) */
-	{ USB_DEVICE(0x1310, 0x0001), .driver_info = BTUSB_SWAVE },
-
 	/* Digianswer devices */
 	{ USB_DEVICE(0x08fd, 0x0001), .driver_info = BTUSB_DIGIANSWER },
 	{ USB_DEVICE(0x08fd, 0x0002), .driver_info = BTUSB_IGNORE },
@@ -215,9 +184,6 @@ static const struct usb_device_id blacklist_table[] = {
 	/* Additional Realtek 8822BE Bluetooth devices */
 	{ USB_DEVICE(0x13d3, 0x3526), .driver_info = BTUSB_REALTEK },
 	{ USB_DEVICE(0x0b05, 0x185c), .driver_info = BTUSB_REALTEK },
-
-	/* Silicon Wave based devices */
-	{ USB_DEVICE(0x0c10, 0x0000), .driver_info = BTUSB_SWAVE },
 
 	{ }	/* Terminating entry */
 };
@@ -1872,11 +1838,6 @@ static int btusb_probe(struct usb_interface *intf,
 #endif
 	if (id->driver_info & BTUSB_CW6622)
 		set_bit(HCI_QUIRK_BROKEN_STORED_LINK_KEY, &hdev->quirks);
-
-	if (id->driver_info & BTUSB_SWAVE) {
-		set_bit(HCI_QUIRK_FIXUP_INQUIRY_MODE, &hdev->quirks);
-		set_bit(HCI_QUIRK_BROKEN_LOCAL_COMMANDS, &hdev->quirks);
-	}
 
 	if (id->driver_info & BTUSB_QCA_ROME) {
 		data->setup_on_usb = btusb_setup_qca;
