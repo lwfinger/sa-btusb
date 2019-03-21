@@ -53,7 +53,6 @@ static struct usb_driver btusb_driver;
 #define BTUSB_SNIFFER		0x08
 #define BTUSB_BROKEN_ISOC	0x20
 #define BTUSB_WRONG_SCO_MTU	0x40
-#define BTUSB_AMP		0x4000
 #define BTUSB_REALTEK		0x20000
 #define BTUSB_IFNUM_2		0x80000
 #define BTUSB_CW6622		0x100000
@@ -61,9 +60,6 @@ static struct usb_driver btusb_driver;
 static const struct usb_device_id btusb_table[] = {
 	/* Generic Bluetooth USB device */
 	{ USB_DEVICE_INFO(0xe0, 0x01, 0x01) },
-
-	/* Generic Bluetooth AMP device */
-	{ USB_DEVICE_INFO(0xe0, 0x01, 0x04), .driver_info = BTUSB_AMP },
 
 	/* Generic Bluetooth USB interface */
 	{ USB_INTERFACE_INFO(0xe0, 0x01, 0x01) },
@@ -1444,13 +1440,8 @@ static int btusb_probe(struct usb_interface *intf,
 	if (!data->intr_ep || !data->bulk_tx_ep || !data->bulk_rx_ep)
 		return -ENODEV;
 
-	if (id->driver_info & BTUSB_AMP) {
-		data->cmdreq_type = USB_TYPE_CLASS | 0x01;
-		data->cmdreq = 0x2b;
-	} else {
-		data->cmdreq_type = USB_TYPE_CLASS;
-		data->cmdreq = 0x00;
-	}
+	data->cmdreq_type = USB_TYPE_CLASS;
+	data->cmdreq = 0x00;
 
 	data->udev = interface_to_usbdev(intf);
 	data->intf = intf;
@@ -1477,10 +1468,7 @@ static int btusb_probe(struct usb_interface *intf,
 	hdev->bus = HCI_USB;
 	hci_set_drvdata(hdev, data);
 
-	if (id->driver_info & BTUSB_AMP)
-		hdev->dev_type = HCI_AMP;
-	else
-		hdev->dev_type = HCI_PRIMARY;
+	hdev->dev_type = HCI_PRIMARY;
 
 	data->hdev = hdev;
 
@@ -1522,14 +1510,9 @@ static int btusb_probe(struct usb_interface *intf,
 	}
 #endif
 
-	if (id->driver_info & BTUSB_AMP) {
-		/* AMP controllers do not support SCO packets */
-		data->isoc = NULL;
-	} else {
-		/* Interface orders are hardcoded in the specification */
-		data->isoc = usb_ifnum_to_if(data->udev, ifnum_base + 1);
-		data->isoc_ifnum = ifnum_base + 1;
-	}
+	/* Interface orders are hardcoded in the specification */
+	data->isoc = usb_ifnum_to_if(data->udev, ifnum_base + 1);
+	data->isoc_ifnum = ifnum_base + 1;
 
 	if (!reset)
 		set_bit(HCI_QUIRK_RESET_ON_CLOSE, &hdev->quirks);
