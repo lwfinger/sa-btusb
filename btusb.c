@@ -61,7 +61,6 @@ static struct usb_driver btusb_driver;
 #define BTUSB_SWAVE		0x1000
 #define BTUSB_AMP		0x4000
 #define BTUSB_QCA_ROME		0x8000
-#define BTUSB_BCM_APPLE		0x10000
 #define BTUSB_REALTEK		0x20000
 #define BTUSB_BCM2045		0x40000
 #define BTUSB_IFNUM_2		0x80000
@@ -76,10 +75,6 @@ static const struct usb_device_id btusb_table[] = {
 
 	/* Generic Bluetooth USB interface */
 	{ USB_INTERFACE_INFO(0xe0, 0x01, 0x01) },
-
-	/* Apple-specific (Broadcom) devices */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x05ac, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_APPLE | BTUSB_IFNUM_2 },
 
 	/* MediaTek MT76x0E */
 	{ USB_DEVICE(0x0e8d, 0x763f) },
@@ -2168,14 +2163,6 @@ static int btusb_probe(struct usb_interface *intf,
 		data->diag = usb_ifnum_to_if(data->udev, ifnum_base + 2);
 	}
 
-	if (id->driver_info & BTUSB_BCM_APPLE) {
-		hdev->manufacturer = 15;
-		hdev->setup = btbcm_setup_apple;
-		hdev->set_diag = btusb_bcm_set_diag;
-
-		/* Broadcom LM_DIAG Interface numbers are hardcoded */
-		data->diag = usb_ifnum_to_if(data->udev, ifnum_base + 2);
-	}
 #endif
 
 	if (id->driver_info & BTUSB_SWAVE) {
