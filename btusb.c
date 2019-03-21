@@ -53,16 +53,13 @@ static struct usb_driver btusb_driver;
 #define BTUSB_DIGIANSWER	0x02
 #define BTUSB_CSR		0x04
 #define BTUSB_SNIFFER		0x08
-#define BTUSB_BCM92035		0x10
 #define BTUSB_BROKEN_ISOC	0x20
 #define BTUSB_WRONG_SCO_MTU	0x40
 #define BTUSB_ATH3012		0x80
-#define BTUSB_BCM_PATCHRAM	0x400
 #define BTUSB_SWAVE		0x1000
 #define BTUSB_AMP		0x4000
 #define BTUSB_QCA_ROME		0x8000
 #define BTUSB_REALTEK		0x20000
-#define BTUSB_BCM2045		0x40000
 #define BTUSB_IFNUM_2		0x80000
 #define BTUSB_CW6622		0x100000
 
@@ -119,52 +116,6 @@ static const struct usb_device_id btusb_table[] = {
 	/* Canyon CN-BTU1 with HID interfaces */
 	{ USB_DEVICE(0x0c10, 0x0000) },
 
-	/* Broadcom BCM20702A0 */
-	{ USB_DEVICE(0x413c, 0x8197) },
-
-	/* Broadcom BCM20702B0 (Dynex/Insignia) */
-	{ USB_DEVICE(0x19ff, 0x0239), .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* Broadcom BCM43142A0 (Foxconn/Lenovo) */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x105b, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* Broadcom BCM920703 (HTC Vive) */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x0bb4, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* Foxconn - Hon Hai */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x0489, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* Lite-On Technology - Broadcom based */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x04ca, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* Broadcom devices with vendor specific id */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x0a5c, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* ASUSTek Computer - Broadcom based */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x0b05, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* Belkin F8065bf - Broadcom based */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x050d, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* IMC Networks - Broadcom based */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x13d3, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* Dell Computer - Broadcom based  */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x413c, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
-	/* Toshiba Corp - Broadcom based */
-	{ USB_VENDOR_AND_INTERFACE_INFO(0x0930, 0xff, 0x01, 0x01),
-	  .driver_info = BTUSB_BCM_PATCHRAM },
-
 	{ }	/* Terminating entry */
 };
 
@@ -173,12 +124,6 @@ MODULE_DEVICE_TABLE(usb, btusb_table);
 static const struct usb_device_id blacklist_table[] = {
 	/* CSR BlueCore devices */
 	{ USB_DEVICE(0x0a12, 0x0001), .driver_info = BTUSB_CSR },
-
-	/* Broadcom BCM2033 without firmware */
-	{ USB_DEVICE(0x0a5c, 0x2033), .driver_info = BTUSB_IGNORE },
-
-	/* Broadcom BCM2045 devices */
-	{ USB_DEVICE(0x0a5c, 0x2045), .driver_info = BTUSB_BCM2045 },
 
 	/* Atheros 3011 with sflash firmware */
 	{ USB_DEVICE(0x0489, 0xe027), .driver_info = BTUSB_IGNORE },
@@ -267,25 +212,6 @@ static const struct usb_device_id blacklist_table[] = {
 	{ USB_DEVICE(0x04ca, 0x3016), .driver_info = BTUSB_QCA_ROME },
 	{ USB_DEVICE(0x04ca, 0x301a), .driver_info = BTUSB_QCA_ROME },
 	{ USB_DEVICE(0x13d3, 0x3496), .driver_info = BTUSB_QCA_ROME },
-
-	/* Broadcom BCM2035 */
-	{ USB_DEVICE(0x0a5c, 0x2009), .driver_info = BTUSB_BCM92035 },
-	{ USB_DEVICE(0x0a5c, 0x200a), .driver_info = BTUSB_WRONG_SCO_MTU },
-	{ USB_DEVICE(0x0a5c, 0x2035), .driver_info = BTUSB_WRONG_SCO_MTU },
-
-	/* Broadcom BCM2045 */
-	{ USB_DEVICE(0x0a5c, 0x2039), .driver_info = BTUSB_WRONG_SCO_MTU },
-	{ USB_DEVICE(0x0a5c, 0x2101), .driver_info = BTUSB_WRONG_SCO_MTU },
-
-	/* IBM/Lenovo ThinkPad with Broadcom chip */
-	{ USB_DEVICE(0x0a5c, 0x201e), .driver_info = BTUSB_WRONG_SCO_MTU },
-	{ USB_DEVICE(0x0a5c, 0x2110), .driver_info = BTUSB_WRONG_SCO_MTU },
-
-	/* HP laptop with Broadcom chip */
-	{ USB_DEVICE(0x03f0, 0x171d), .driver_info = BTUSB_WRONG_SCO_MTU },
-
-	/* Dell laptop with Broadcom chip */
-	{ USB_DEVICE(0x413c, 0x8126), .driver_info = BTUSB_WRONG_SCO_MTU },
 
 	/* Dell Wireless 370 and 410 devices */
 	{ USB_DEVICE(0x413c, 0x8152), .driver_info = BTUSB_WRONG_SCO_MTU },
@@ -1503,22 +1429,6 @@ static void btusb_waker(struct work_struct *work)
 	usb_autopm_put_interface(data->intf);
 }
 
-static int btusb_setup_bcm92035(struct hci_dev *hdev)
-{
-	struct sk_buff *skb;
-	u8 val = 0x00;
-
-	BT_DBG("%s", hdev->name);
-
-	skb = __hci_cmd_sync(hdev, 0xfc3b, 1, &val, HCI_INIT_TIMEOUT);
-	if (IS_ERR(skb))
-		bt_dev_err(hdev, "BCM92035 command failed (%ld)", PTR_ERR(skb));
-	else
-		kfree_skb(skb);
-
-	return 0;
-}
-
 static int btusb_setup_csr(struct hci_dev *hdev)
 {
 	struct hci_rp_read_local_version *rp;
@@ -1852,95 +1762,6 @@ static int btusb_setup_qca(struct hci_dev *hdev)
 	return 0;
 }
 
-#ifdef CONFIG_BT_HCIBTUSB_BCM
-static inline int __set_diag_interface(struct hci_dev *hdev)
-{
-	struct btusb_data *data = hci_get_drvdata(hdev);
-	struct usb_interface *intf = data->diag;
-	int i;
-
-	if (!data->diag)
-		return -ENODEV;
-
-	data->diag_tx_ep = NULL;
-	data->diag_rx_ep = NULL;
-
-	for (i = 0; i < intf->cur_altsetting->desc.bNumEndpoints; i++) {
-		struct usb_endpoint_descriptor *ep_desc;
-
-		ep_desc = &intf->cur_altsetting->endpoint[i].desc;
-
-		if (!data->diag_tx_ep && usb_endpoint_is_bulk_out(ep_desc)) {
-			data->diag_tx_ep = ep_desc;
-			continue;
-		}
-
-		if (!data->diag_rx_ep && usb_endpoint_is_bulk_in(ep_desc)) {
-			data->diag_rx_ep = ep_desc;
-			continue;
-		}
-	}
-
-	if (!data->diag_tx_ep || !data->diag_rx_ep) {
-		bt_dev_err(hdev, "invalid diagnostic descriptors");
-		return -ENODEV;
-	}
-
-	return 0;
-}
-
-static struct urb *alloc_diag_urb(struct hci_dev *hdev, bool enable)
-{
-	struct btusb_data *data = hci_get_drvdata(hdev);
-	struct sk_buff *skb;
-	struct urb *urb;
-	unsigned int pipe;
-
-	if (!data->diag_tx_ep)
-		return ERR_PTR(-ENODEV);
-
-	urb = usb_alloc_urb(0, GFP_KERNEL);
-	if (!urb)
-		return ERR_PTR(-ENOMEM);
-
-	skb = bt_skb_alloc(2, GFP_KERNEL);
-	if (!skb) {
-		usb_free_urb(urb);
-		return ERR_PTR(-ENOMEM);
-	}
-
-	skb_put_u8(skb, 0xf0);
-	skb_put_u8(skb, enable);
-
-	pipe = usb_sndbulkpipe(data->udev, data->diag_tx_ep->bEndpointAddress);
-
-	usb_fill_bulk_urb(urb, data->udev, pipe,
-			  skb->data, skb->len, btusb_tx_complete, skb);
-
-	skb->dev = (void *)hdev;
-
-	return urb;
-}
-
-static int btusb_bcm_set_diag(struct hci_dev *hdev, bool enable)
-{
-	struct btusb_data *data = hci_get_drvdata(hdev);
-	struct urb *urb;
-
-	if (!data->diag)
-		return -ENODEV;
-
-	if (!test_bit(HCI_RUNNING, &hdev->flags))
-		return -ENETDOWN;
-
-	urb = alloc_diag_urb(hdev, enable);
-	if (IS_ERR(urb))
-		return PTR_ERR(urb);
-
-	return submit_or_queue_tx_urb(hdev, urb);
-}
-#endif
-
 #ifdef CONFIG_PM
 static irqreturn_t btusb_oob_wake_handler(int irq, void *priv)
 {
@@ -2146,25 +1967,6 @@ static int btusb_probe(struct usb_interface *intf,
 	if (id->driver_info & BTUSB_CW6622)
 		set_bit(HCI_QUIRK_BROKEN_STORED_LINK_KEY, &hdev->quirks);
 
-	if (id->driver_info & BTUSB_BCM2045)
-		set_bit(HCI_QUIRK_BROKEN_STORED_LINK_KEY, &hdev->quirks);
-
-	if (id->driver_info & BTUSB_BCM92035)
-		hdev->setup = btusb_setup_bcm92035;
-
-#ifdef CONFIG_BT_HCIBTUSB_BCM
-	if (id->driver_info & BTUSB_BCM_PATCHRAM) {
-		hdev->manufacturer = 15;
-		hdev->setup = btbcm_setup_patchram;
-		hdev->set_diag = btusb_bcm_set_diag;
-		hdev->set_bdaddr = btbcm_set_bdaddr;
-
-		/* Broadcom LM_DIAG Interface numbers are hardcoded */
-		data->diag = usb_ifnum_to_if(data->udev, ifnum_base + 2);
-	}
-
-#endif
-
 	if (id->driver_info & BTUSB_SWAVE) {
 		set_bit(HCI_QUIRK_FIXUP_INQUIRY_MODE, &hdev->quirks);
 		set_bit(HCI_QUIRK_BROKEN_LOCAL_COMMANDS, &hdev->quirks);
@@ -2250,16 +2052,6 @@ static int btusb_probe(struct usb_interface *intf,
 		if (err < 0)
 			goto out_free_dev;
 	}
-
-#ifdef CONFIG_BT_HCIBTUSB_BCM
-	if (data->diag) {
-		if (!usb_driver_claim_interface(&btusb_driver,
-						data->diag, data))
-			__set_diag_interface(hdev);
-		else
-			data->diag = NULL;
-	}
-#endif
 
 	if (enable_autosuspend)
 		usb_enable_autosuspend(data->udev);
